@@ -1,8 +1,16 @@
 #import module
-import pandas as pd
-import requests
-from bs4 import BeautifulSoup
+#import pandas as pd
+#import requests
+#from bs4 import BeautifulSoup
 import streamlit as st
+from google.cloud import firestore
+
+
+# Authenticate to Firestore with the JSON account key.
+db = firestore.Client.from_service_account_json("firestore-key.json")
+
+
+
 
 st.set_page_config('Home-Gaurav Transport',initial_sidebar_state= "expanded")
 st.caption('GAURAV TRANSPORT')
@@ -38,19 +46,56 @@ if userType == 'Truck Driver':
 
 if userType == 'Transporter':
     #with col1:
+   
         with st.expander("Create New LR"):
-            st.date_input('CN Date')
-            st.text_input('Consignment Note Number',value="")
-            st.text_input('Consignor Name & Address',value="")
-            st.text_input('Consignee Name & Address',value="")
-            st.text_input('Driver Name',value="")
-            st.text_input('Driver Contact Number',value="")
-            st.text_input('Vehicle Number')
-            st.text_input('Vehicle load capacity')
-            st.text_input('Vehicle Type')
-            st.radio('Payment Terms',options = ['To Be Billed','To Pay','Paid'], horizontal= True)
-            st.radio('Invoice and GST under RCM payable by',options = ['Consignor','Consignee'], horizontal= True)
-            st.button('Submit Details')
+            with st.form('CreateLR',clear_on_submit=True):
+                #retriving last LR Number and adding 1 to it to generate new LR
+                doc_ref = db.collection("SEQ").document("LRSEQ")
+                newLrNumber = doc_ref.get().to_dict()["LRSEQ"] + 1 
+                doc_ref.set({"LRSEQ":newLrNumber})
+                
+                cnDate = st.date_input('CN Date')
+                cnNo = st.text('Consignment Note Number: ' + str(newLrNumber) )
+                consignorName=st.text_input('Consignor Name',value="")
+                consignorAddress =st.text_area('Consignor Address',value="")
+                consigneeName=st.text_input('Consignee Name & Address',value="")
+                consigneeAddress=st.text_area('Consignee Address',value="")
+                pickupCity = st.text_input('Pickup City',value="")
+                dropCity = st.text_input('Drop City',value="")
+                driverName = st.text_input('Driver Name',value="")
+                driverContactNumber= st.text_input('Driver Contact Number',value="")
+                vehicleNumber=st.text_input('Vehicle Number')
+                vehicleLoadCapacity=st.text_input('Vehicle load capacity in MT')
+                vehicleType=st.text_input('Vehicle Type')
+                route =st.text_input('Route (for eg.   Pune--Panvel--Mumbai--Ahmedabad)')
+                paymentTerm=st.radio('Payment Terms',options = ['To Be Billed','To Pay','Paid'], horizontal= True)
+                invGstPayableBy=st.radio('Invoice and GST under RCM payable by',options = ['Consignor','Consignee'], horizontal= True)
+                lrsubmit = st.form_submit_button("Create LR")
+             
+            
+        if lrsubmit:
+            doc_ref = db.collection("LR").document(str(cnNo))
+            doc_ref.set({
+            "CN Date": cnDate.strftime("%d/%m/%Y"),
+            "CN Number": cnNo,
+            "Consignor Name": consignorName,
+            "Consignor Address" : consignorAddress,
+            "Consignee Name" : consigneeName,
+            "Consignee Address" : consigneeAddress,
+            "Pickup City": pickupCity,
+            "Drop City": dropCity,
+            "Driver Name" : driverName,
+            "Driver Contact Number" : driverContactNumber,
+            "Vehicle Number" : vehicleNumber,
+            "Vehicle Laod Capacity" : vehicleLoadCapacity,
+            "Vehicle Type" : vehicleType,   
+            "Route" :route,
+            "Payment Term":paymentTerm,
+            "Invoice and GST payable by" :invGstPayableBy 
+                 
+            })
+            
+            
     #with col2 :
         with st.expander("Edit LR"):
             st.text_input('LR Number')
